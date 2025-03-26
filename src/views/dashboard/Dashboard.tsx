@@ -59,6 +59,22 @@ import { getAlerts } from '../../services/alert.service'
 import { Alert } from '../../model/alert.model';
 
 const Dashboard = () => {
+
+  const handleDetail = (alertId: number) => {
+    console.log(`Detalle button clicked for alert ID: ${alertId}`)
+    // Add your logic here (e.g., navigate to a detail page or show a modal)
+  }
+
+  const handleEscalate = (alertId: number) => {
+    console.log(`Escalar button clicked for alert ID: ${alertId}`)
+    // Add your logic here (e.g., send an API request to escalate the alert)
+  }
+
+  const handleDismiss = (alertId: number) => {
+    console.log(`Descartar button clicked for alert ID: ${alertId}`)
+    // Add your logic here (e.g., remove the alert from the list)
+  }
+
   const progressExample = [
     { title: 'Visits', value: '29.703 Users', percent: 40, color: 'success' },
     { title: 'Unique', value: '24.093 Users', percent: 20, color: 'info' },
@@ -241,7 +257,7 @@ const Dashboard = () => {
       <CRow>
         <CCol xs>
           <CCard className="mb-4">
-            <CCardHeader>Alertas activas</CCardHeader>
+            <CCardHeader>Eventos activos</CCardHeader>
             <CCardBody>
 {/*               <CRow>
                 <CCol xs={12} md={6} xl={6}>
@@ -335,7 +351,8 @@ const Dashboard = () => {
                     </CTableHeaderCell> */}
                     <CTableHeaderCell className="bg-body-tertiary">Severidad</CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary">Entidad</CTableHeaderCell>
-                    <CTableHeaderCell colSpan={2} className="bg-body-tertiary">Descripción</CTableHeaderCell>
+                    <CTableHeaderCell className="bg-body-tertiary">Descripción</CTableHeaderCell>
+                    <CTableHeaderCell className="bg-body-tertiary">Acciones</CTableHeaderCell>
                     {/* <CTableHeaderCell className="bg-body-tertiary text-center">
                       Country
                     </CTableHeaderCell>
@@ -361,8 +378,33 @@ const Dashboard = () => {
                       <CTableDataCell>
                         <div>{alert.affectedEntityIp}</div>
                        </CTableDataCell>
-                      <CTableDataCell colSpan={2} >
+                      <CTableDataCell>
                         <div>{alert.description}</div>
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        <CButtonGroup role="group" aria-label="Basic example">
+                          <CButton
+                            color="primary"
+                            variant="outline"
+                            onClick={() => handleDetail(alert.id)}
+                          >
+                            Detalle
+                          </CButton>
+                          <CButton
+                            color="primary"
+                            variant="outline"
+                            onClick={() => handleEscalate(alert.id)}
+                          >
+                            Escalar
+                          </CButton>
+                          <CButton
+                            color="primary"
+                            variant="outline"
+                            onClick={() => handleDismiss(alert.id)}
+                          >
+                            Descartar
+                          </CButton>
+                        </CButtonGroup>
                       </CTableDataCell>
                       {/* <CTableDataCell className="text-center">
                         <CIcon size="xl" icon={item.country.flag} title={item.country.name} />
