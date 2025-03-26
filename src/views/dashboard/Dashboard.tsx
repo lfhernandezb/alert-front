@@ -1,6 +1,8 @@
 import React from 'react'
 import classNames from 'classnames'
 
+const alerts: Alert[] = getAlerts();
+
 import {
   CAvatar,
   CButton,
@@ -53,6 +55,8 @@ import avatar6 from '../../assets/images/avatars/6.jpg'
 import WidgetsBrand from '../widgets/WidgetsBrand'
 import WidgetsDropdown from '../widgets/WidgetsDropdown'
 import MainChart from './MainChart'
+import { getAlerts } from '../../services/alert.service'
+import { Alert } from '../../model/alert.model';
 
 const Dashboard = () => {
   const progressExample = [
@@ -84,7 +88,7 @@ const Dashboard = () => {
     { title: 'Twitter', icon: cibTwitter, percent: 11, value: '37,564' },
     { title: 'LinkedIn', icon: cibLinkedin, percent: 8, value: '27,319' },
   ]
-
+  /*
   const tableExample = [
     {
       avatar: { src: avatar1, status: 'success' },
@@ -175,11 +179,11 @@ const Dashboard = () => {
       activity: 'Last week',
     },
   ]
-
+  */
   return (
     <>
-      <WidgetsDropdown className="mb-4" />
-      <CCard className="mb-4">
+      {/* <WidgetsDropdown className="mb-4" /> */}
+      {/*<CCard className="mb-4">
         <CCardBody>
           <CRow>
             <CCol sm={5}>
@@ -232,14 +236,14 @@ const Dashboard = () => {
             ))}
           </CRow>
         </CCardFooter>
-      </CCard>
-      <WidgetsBrand className="mb-4" withCharts />
+      </CCard> */ }
+      {/* <WidgetsBrand className="mb-4" withCharts /> */}
       <CRow>
         <CCol xs>
           <CCard className="mb-4">
-            <CCardHeader>Traffic {' & '} Sales</CCardHeader>
+            <CCardHeader>Alertas activas</CCardHeader>
             <CCardBody>
-              <CRow>
+{/*               <CRow>
                 <CCol xs={12} md={6} xl={6}>
                   <CRow>
                     <CCol xs={6}>
@@ -322,38 +326,45 @@ const Dashboard = () => {
               </CRow>
 
               <br />
-
+ */}
               <CTable align="middle" className="mb-0 border" hover responsive>
                 <CTableHead className="text-nowrap">
                   <CTableRow>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
+                    {/* <CTableHeaderCell className="bg-body-tertiary text-center">
                       <CIcon icon={cilPeople} />
-                    </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">User</CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary text-center">
+                    </CTableHeaderCell> */}
+                    <CTableHeaderCell className="bg-body-tertiary">Severidad</CTableHeaderCell>
+                    <CTableHeaderCell className="bg-body-tertiary">Entidad</CTableHeaderCell>
+                    <CTableHeaderCell colSpan={2} className="bg-body-tertiary">Descripción</CTableHeaderCell>
+                    {/* <CTableHeaderCell className="bg-body-tertiary text-center">
                       Country
                     </CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary">Usage</CTableHeaderCell>
                     <CTableHeaderCell className="bg-body-tertiary text-center">
                       Payment Method
                     </CTableHeaderCell>
-                    <CTableHeaderCell className="bg-body-tertiary">Activity</CTableHeaderCell>
+                    <CTableHeaderCell className="bg-body-tertiary">Activity</CTableHeaderCell> */}
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {tableExample.map((item, index) => (
-                    <CTableRow v-for="item in tableItems" key={index}>
-                      <CTableDataCell className="text-center">
+                  {alerts.map((alert) => (
+                    <CTableRow v-for="alert in alerts" key={alert.id}>
+                      {/* <CTableDataCell className="text-center">
                         <CAvatar size="md" src={item.avatar.src} status={item.avatar.status} />
-                      </CTableDataCell>
+                      </CTableDataCell> */}
                       <CTableDataCell>
-                        <div>{item.user.name}</div>
+                        <div>{alert.severity}</div>
                         <div className="small text-body-secondary text-nowrap">
-                          <span>{item.user.new ? 'New' : 'Recurring'}</span> | Registered:{' '}
-                          {item.user.registered}
+                          {alert.timestamp.toLocaleString()}
                         </div>
                       </CTableDataCell>
-                      <CTableDataCell className="text-center">
+                      <CTableDataCell>
+                        <div>{alert.affectedEntityIp}</div>
+                       </CTableDataCell>
+                      <CTableDataCell colSpan={2} >
+                        <div>{alert.description}</div>
+                      </CTableDataCell>
+                      {/* <CTableDataCell className="text-center">
                         <CIcon size="xl" icon={item.country.flag} title={item.country.name} />
                       </CTableDataCell>
                       <CTableDataCell>
@@ -371,7 +382,7 @@ const Dashboard = () => {
                       <CTableDataCell>
                         <div className="small text-body-secondary text-nowrap">Last login</div>
                         <div className="fw-semibold text-nowrap">{item.activity}</div>
-                      </CTableDataCell>
+                      </CTableDataCell> */}
                     </CTableRow>
                   ))}
                 </CTableBody>

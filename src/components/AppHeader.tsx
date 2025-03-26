@@ -37,8 +37,9 @@ const AppHeader = () => {
 
   useEffect(() => {
     document.addEventListener('scroll', () => {
-      headerRef.current &&
+      if (headerRef.current) {
         headerRef.current.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0)
+      }
     })
   }, [])
 
@@ -57,13 +58,13 @@ const AppHeader = () => {
               Dashboard
             </CNavLink>
           </CNavItem>
-          <CNavItem>
+{/*           <CNavItem>
             <CNavLink href="#">Users</CNavLink>
           </CNavItem>
           <CNavItem>
             <CNavLink href="#">Settings</CNavLink>
           </CNavItem>
-        </CHeaderNav>
+ */}        </CHeaderNav>
         <CHeaderNav className="ms-auto">
           <CNavItem>
             <CNavLink href="#">
@@ -75,11 +76,12 @@ const AppHeader = () => {
               <CIcon icon={cilList} size="lg" />
             </CNavLink>
           </CNavItem>
-          <CNavItem>
+{/*           <CNavItem>
             <CNavLink href="#">
               <CIcon icon={cilEnvelopeOpen} size="lg" />
             </CNavLink>
           </CNavItem>
+ */}
         </CHeaderNav>
         <CHeaderNav>
           <li className="nav-item py-1">
