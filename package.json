@@ -20,6 +20,7 @@
     "@popperjs/core": "^2.11.8",
     "@reduxjs/toolkit": "^2.6.1",
     "chart.js": "^4.4.7",
+    "class-transformer": "^0.5.1",
     "classnames": "^2.5.1",
     "core-js": "^3.40.0",
     "prop-types": "^15.8.1",
@@ -28,6 +29,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.1.5",
     "redux": "5.0.1",
+    "reflect-metadata": "^0.2.2",
     "simplebar-react": "^3.3.0",
     "web-vitals": "^4.2.4"
   },
