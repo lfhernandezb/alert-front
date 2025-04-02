@@ -9,6 +9,11 @@ import {
   CCardFooter,
   CCardHeader,
   CCol,
+  CFormCheck,
+  CModal,
+  CModalBody,
+  CModalFooter,
+  CModalHeader,
   CProgress,
   CRow,
   CTable,
@@ -55,8 +60,15 @@ import MainChart from './MainChart'
 
 import { useNavigate } from 'react-router-dom';
 import { InfraEvent } from '../../model/infra-event.model'
-import { getAllEvents } from '../../services/event.service'
-import { use, useEffect, useState } from 'react'
+import { getAllEvents, getEventById, updateEvent } from '../../services/event.service'
+import { useEffect, useState } from 'react'
+import { Result } from '../../model/zabbix/response.model'
+import { plainToInstance } from 'class-transformer'
+import { DataOffice365 } from '../../model/wazuh/data-office365.model'
+import { DataPkg } from '../../model/wazuh/data-pkg.model'
+import { DataFw } from '../../model/wazuh/data-fw.model'
+import { DataWin } from '../../model/wazuh/data-win.model'
+import { Source } from '../../model/wazuh/source.model'
 
 const severities = {
   'Baja': 0,
@@ -75,13 +87,23 @@ const DashboardContent = () => {
   const [events, setEvents] = useState<InfraEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false); // State for modal visibility
+  const [escalateModalVisible, setEscalateModalVisible] = useState(false); // State for modal visibility
+  const [discardModalVisible, setDiscardModalVisible] = useState(false); // State for modal visibility
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null); // State for selected event ID
+  const [detail, setDetail] = useState<string>(''); // State for event details
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEvents = async () => {
+      // if a modal is open, do dot refresh events
+      if (detailModalVisible || escalateModalVisible || discardModalVisible) {
+        return;
+      }
+      setLoading(true);
       try {
         const fetchedEvents: InfraEvent[] = await getAllEvents();
-        setEvents(fetchedEvents);
 
         // Descending Order of severity
         const severitiesMap: { [key: string]: number } = {};
@@ -91,6 +113,50 @@ const DashboardContent = () => {
         // Sort events based on severity 
       
         fetchedEvents.sort((a, b) => (severitiesMap[b.severity || ''] || 0) - (severitiesMap[a.severity || ''] || 0));
+
+        // filter events based on CFormCheck options checked
+
+        if ((document.getElementById('inlineCheckboxAll') as HTMLInputElement)?.checked) {
+          // allEvents = fetchedEvents;
+        } else {
+          let active: boolean = false;
+          let escalated: boolean = false;
+          let discarded: boolean = false;
+
+          if ((document.getElementById('inlineCheckboxActive') as HTMLInputElement)?.checked) {
+            active = true;
+          }
+          if ((document.getElementById('inlineCheckboxDiscarded') as HTMLInputElement)?.checked) {
+            discarded = true;
+          }
+          if ((document.getElementById('inlineCheckboxEscalated') as HTMLInputElement)?.checked) {
+            escalated = true;
+          }
+
+          if (active && escalated && discarded) {
+            fetchedEvents.filter(event => event.status === 'active'|| event.status === 'escalated' || event.status === 'discarded');
+          } else if (active && escalated && !discarded) {
+            fetchedEvents.filter(event => event.status === 'active' || event.status === 'escalated');
+          } else if (active && !escalated && discarded) {
+            fetchedEvents.filter(event => event.status === 'active' || event.status === 'discarded');
+          } else if (!active && escalated && discarded) {
+            fetchedEvents.filter(event => event.status === 'escalated' || event.status === 'discarded');
+          } else if (active && !escalated && !discarded) {
+            fetchedEvents.filter(event => event.status === 'active');
+          } else if (!active && escalated && !discarded) {
+            fetchedEvents.filter(event => event.status === 'escalated');
+          } else if (!active && !escalated && discarded) {
+            fetchedEvents.filter(event => event.status === 'discarded');
+          } else if (!active && !escalated && !discarded) {
+            // No events to show
+          }
+        }
+
+        // const allEvents = fetchedEvents.filter(event => event.status === 'all');
+        // const escalatedEvents = fetchedEvents.filter(event => event.status === 'escalated');
+        // const discardedEvents = fetchedEvents.filter(event => event.status === 'discarded');
+
+        setEvents(fetchedEvents);
 
         setLoading(false);
       } catch (error) {
@@ -109,31 +175,271 @@ const DashboardContent = () => {
   }, []);
   
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Cargando...</div>;
   }
   if (error) { 
     return <div>{error}</div>;
   }
   if (!events || events.length === 0) {
-    return <div>No events found</div>;
+    return <div>En este momento no hay eventos activos</div>;
   }
    
 
-  const handleDetail = (eventId: number) => {
+  const handleDetail = async (eventId: number) => {
     console.log(`Detalle button clicked for event ID: ${eventId}`)
     // Add your logic here (e.g., navigate to a detail page or show a modal)
-    navigate(`/dashboard/event-detail/${eventId}`);
+
+    // Detail in a separate page
+    // navigate(`/dashboard/event-detail/${eventId}`);
+
+    // Detail in a modal
+    setSelectedEventId(eventId); // Store the event ID
+    setDetailModalVisible(true); // Show the modal
+
+    try {
+      const fetchedEvent = await getEventById(eventId); // Fetch event details
+      if (fetchedEvent) {
+
+
+
+
+
+
+
+        let eventDetail = '';
+
+        if (fetchedEvent.origin === 'wazuh') {
+
+          // console.log('fetchedEvent.detail', fetchedEvent.detail);
+          // console.log('fetchedEvent.detail', JSON.stringify(fetchedEvent.detail, null, 2)); 
+          if (!fetchedEvent.detail) {
+            setDetail('Event detail not found');
+            setLoading(false);
+            return;
+          }
+          const source: Source = plainToInstance(Source, JSON.parse(fetchedEvent.detail), {
+            excludeExtraneousValues: false,
+          });
+
+          console.log('source', source);
+          console.log('source.rule', source.rule);
+
+          if (!source || !source.rule || !source.agent) {
+            setDetail('Source not found');
+            setLoading(false);
+            return;
+          }
+
+          const { rule, agent, data, fullLog } = source;
+          eventDetail += `rule.id: ${rule.id}\n`;
+          eventDetail += `rule.description: ${rule.description}\n`;
+          eventDetail += `rule.level: ${rule.level}\n`;
+
+          eventDetail += `agent.id: ${agent.id}\n`;
+          eventDetail += `agent.name: ${agent.name}\n`;
+          eventDetail += `agent.ip: ${agent.ip}\n`;
+          eventDetail += `agent.os: ${agent.os}\n`;
+          eventDetail += `agent.status: ${agent.status}\n`;
+          eventDetail += `agent.version: ${agent.version}\n\n`;
+
+          switch (rule.id) {
+            case "60115":
+              case "92650":
+              case "92657": {
+                  // Windows alert
+                  const win = plainToInstance(DataWin, JSON.parse(JSON.stringify(data)), {
+                    excludeExtraneousValues: false,
+                  });
+                  // console.log(win);
+                  eventDetail += JSON.stringify(win, null, 2);
+                }
+                  break;
+              case "70021":
+              case "70022": {
+                  // FW alert denied/permited traffic
+                  const dataFw = plainToInstance(DataFw, JSON.parse(JSON.stringify(data)), {
+                    excludeExtraneousValues: false,
+                  });
+                  // console.log(dataFw);
+                  eventDetail += JSON.stringify(dataFw, null, 2);
+                  console.log(eventDetail);
+                }
+                  break;
+              case "2903": {
+                  // Linux package
+                  const dataPkg = plainToInstance(DataPkg, JSON.parse(JSON.stringify(data)), {
+                    excludeExtraneousValues: false,
+                  });
+                  eventDetail += JSON.stringify(dataPkg, null, 2);
+                  console.log(eventDetail);
+                }
+                  break;
+              case "31151":
+              case "1007":
+              case "3333":
+              case "31103":
+              case "31510":
+              case "594":
+              case "750":
+              case "31516": {
+                    // related to servers, web servers, services, full_log
+                    console.log(alert);
+                    // console.log(fullLog);
+                    eventDetail += "full_log:\n";
+                    eventDetail += fullLog ? fullLog : "No hay detalles";
+                    // console.log(detalle);
+              }
+                    break;
+              case "91575": {
+                  // office365
+                  const dataOffice365 = plainToInstance(DataOffice365, JSON.parse(JSON.stringify(data)), {
+                              excludeExtraneousValues: false,
+                          });
+                  // console.log(dataOffice365);
+                  eventDetail += JSON.stringify(dataOffice365, null, 2);
+                  }
+                  break;
+              default:
+                eventDetail += 'No additional details available.';
+                break;
+          }
+        } else if (fetchedEvent.origin === 'zabbix') {
+          if (!fetchedEvent.detail) {
+            setDetail('Event detail not found');
+            setLoading(false);
+            return;
+          }
+          const result: Result = plainToInstance(Result, JSON.parse(fetchedEvent.detail), {
+            excludeExtraneousValues: false,
+          });
+
+          eventDetail += `host.name: ${fetchedEvent!.equipment!.name || "Desconocido"}\n`;
+          eventDetail += `host.ip: ${fetchedEvent!.equipment!.ip || "Desconocida"}\n\n`;
+
+          eventDetail += JSON.stringify(result, null, 2);
+        } else {
+          eventDetail += 'Unknown origin';
+        }
+
+
+
+
+
+
+
+        setDetail(eventDetail); // Format and store details
+        
+      } else {
+        setDetail('No details available for this event.');
+      }
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+      setDetail('Error fetching event details.');
+    }
+
   }
 
-  const handleEscalate = (eventId: number) => {
-    console.log(`Escalar button clicked for event ID: ${eventId}`)
+  const handleEscalateDetail = () => {
+    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
     // Add your logic here (e.g., send an API request to escalate the event)
-  }
+    // setDetailModalVisible(false); // Close the modal
+    // setDetail(''); // Clear the details
+
+    setEscalateModalVisible(true); // Show the modal
+  };
+
+  const handleDiscardDetail = () => {
+    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // Add your logic here (e.g., send an API request to escalate the event)
+    // setDetailModalVisible(false); // Close the modal
+    // setDetail(''); // Clear the details
+
+    setDiscardModalVisible(true); // Show the modal
+  };
+
+  const handleCloseDetail = () => {
+    setDetailModalVisible(false); // Close the modal
+    setDetail(''); // Clear the details
+  };
 
   const handleDismiss = (eventId: number) => {
     console.log(`Descartar button clicked for event ID: ${eventId}`)
     // Add your logic here (e.g., remove the event from the list)
+    setSelectedEventId(eventId); // Store the event ID
+    setDiscardModalVisible(true); // Show the modal
   }
+
+  const handleConfirmDiscard = async () => {
+    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // Add your logic here (e.g., send an API request to escalate the event)
+    setDiscardModalVisible(false); // Close the modal
+
+    if (detailModalVisible) {
+      setDetailModalVisible(false); // Close the modal
+      setDetail(''); // Clear the details
+    }
+    
+    // Remove the event from the list
+    // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+
+
+    const updatedEvent = await updateEvent({id: selectedEventId!, status: 'discarded'}).then((response) => {
+      console.log('Event discarded:', updatedEvent);
+      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+    }).catch((error) => {
+      console.error('Error discarding event:', error);
+    });
+
+    // Optionally, you can also show a success message or perform any other action
+    console.log(`Event with ID ${selectedEventId} discarded.`);
+    // Reset selectedEventId
+    setSelectedEventId(null);
+  };
+
+  const handleCancelDiscard = () => {
+    setDiscardModalVisible(false); // Close the modal
+  };
+
+  const handleEscalate = (eventId: number) => {
+    console.log(`Escalar button clicked for event ID: ${eventId}`);
+    setSelectedEventId(eventId); // Store the event ID
+    setEscalateModalVisible(true); // Show the modal
+  };
+
+  const handleConfirmEscalate = async () => {
+    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // Add your logic here (e.g., send an API request to escalate the event)
+    setEscalateModalVisible(false); // Close the modal
+
+    if (detailModalVisible) {
+      setDetailModalVisible(false); // Close the modal
+      setDetail(''); // Clear the details
+    }
+    
+    // Remove the event from the list
+    // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+
+
+    const updatedEvent = await updateEvent({id: selectedEventId!, status: 'escalated'}).then((response) => {
+      console.log('Event escalated:', updatedEvent);
+      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+    }).catch((error) => {
+      console.error('Error discarding event:', error);
+    });
+
+
+
+    // Optionally, you can also show a success message or perform any other action
+    console.log(`Event with ID ${selectedEventId} discarded.`);
+    // Reset selectedEventId
+    setSelectedEventId(null);
+
+  };
+
+  const handleCancelEscalate = () => {
+    setEscalateModalVisible(false); // Close the modal
+  };
+
 
   const progressExample = [
     { title: 'Visits', value: '29.703 Users', percent: 40, color: 'success' },
@@ -317,7 +623,13 @@ const DashboardContent = () => {
       <CRow>
         <CCol xs>
           <CCard className="mb-4">
-            <CCardHeader>Eventos activos</CCardHeader>
+            <CCardHeader>
+              Eventos
+              <CFormCheck inline id="inlineCheckboxAll" value="option1" label="Todos" />
+              <CFormCheck inline id="inlineCheckboxActive" value="option2" label="Activos" />
+              <CFormCheck inline id="inlineCheckboxEscalated" value="option2" label="Escalados" />
+              <CFormCheck inline id="inlineCheckboxDiscarded" value="option3" label="Descartados" />
+            </CCardHeader>
             <CCardBody>
 {/*               <CRow>
                 <CCol xs={12} md={6} xl={6}>
@@ -500,6 +812,64 @@ const DashboardContent = () => {
           </CCard>
         </CCol>
       </CRow>
+
+      {/* Modal for Detail */}
+      <CModal visible={detailModalVisible} onClose={handleCloseDetail}>
+        <CModalHeader>Detalle de Evento #{selectedEventId}</CModalHeader>
+        <CModalBody>
+  
+          <div className="fw-semibold">
+            <pre style={{ whiteSpace: 'pre-wrap' }}>{detail}</pre>
+          </div>
+          
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="primary" onClick={handleEscalateDetail}>
+            Escalar
+          </CButton>
+          <CButton color="primary" onClick={handleDiscardDetail}>
+            Descartar
+          </CButton>
+          <CButton color="secondary" onClick={handleCloseDetail}>
+            Cerrar
+          </CButton>
+        </CModalFooter>
+      </CModal>
+
+      {/* Modal for Escalation */}
+      <CModal visible={escalateModalVisible} onClose={handleCancelEscalate}>
+        <CModalHeader>Confirmar Escalamiento</CModalHeader>
+        <CModalBody>
+          ¿Está seguro de que desea escalar el evento con ID {selectedEventId}?
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={handleCancelEscalate}>
+            Cancelar
+          </CButton>
+          <CButton color="primary" onClick={handleConfirmEscalate}>
+            Confirmar
+          </CButton>
+        </CModalFooter>
+      </CModal>
+
+      {/* Modal for Acknowledge/Discard */}
+      <CModal visible={discardModalVisible} onClose={handleCancelDiscard}>
+        <CModalHeader>Confirmar Descarte</CModalHeader>
+        <CModalBody>
+          ¿Está seguro de que desea descartar el evento con ID {selectedEventId}?
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={handleCancelDiscard}>
+            Cancelar
+          </CButton>
+          <CButton color="primary" onClick={handleConfirmDiscard}>
+            Confirmar
+          </CButton>
+        </CModalFooter>
+      </CModal>
+
+
+
     </>
   )
 }

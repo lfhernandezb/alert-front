@@ -38,4 +38,38 @@ async function getEventById(id: number): Promise<InfraEvent> {
     });
 }
 
-export { getAllEvents, getEventById };
+async function updateEvent(event: InfraEvent): Promise<InfraEvent> {
+    const axiosInstance = axios.create({
+        timeout: 4000,
+        headers: {
+            "Content-Type": "application/json",
+        }
+    });
+
+    return axiosInstance.put("http://localhost:8080/api/event/" + event.id, event
+    ).then((response) => {
+        return plainToInstance(InfraEvent, response.data);
+    }).catch((error) => {
+        console.error("Error updating event:", error);
+        throw error;
+    });
+}
+
+async function deleteEvent(id: number): Promise<void> {
+    const axiosInstance = axios.create({
+        timeout: 4000,
+        headers: {
+            "Content-Type": "application/json",
+        }
+    });
+
+    return axiosInstance.delete("http://localhost:8080/api/event/" + id
+    ).then((response) => {
+        return response.data;
+    }).catch((error) => {
+        console.error("Error deleting event:", error);
+        throw error;
+    });
+}
+
+export { getAllEvents, getEventById, updateEvent, deleteEvent };
