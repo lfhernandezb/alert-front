@@ -15,14 +15,14 @@ export class Source {
     rule?:            Rule;
     @Type(() => Decoder)
     decoder?:         Decoder;
-    @Expose({ name: 'full_log' })
+    // @Expose({ name: 'full_log' })
     fullLog?:        string;
     @Type(() => Input)
     input?:           Input;
-    @Expose({ name: '@timestamp' })
+    // @Expose({ name: '@timestamp' })
     timestamp?:       string;
     location?:        string;
     id?:              string;
-    @Expose({ name: 'timestamp' })
+    // @Expose({ name: 'timestamp' })
     sourceTimestamp?: string;
 }

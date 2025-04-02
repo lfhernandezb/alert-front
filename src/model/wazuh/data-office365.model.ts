@@ -7,19 +7,19 @@
 import { Expose, Type } from "class-transformer";
 
 export class FileData {
-    @Expose({ name: 'FilePath' })
+    // @Expose({ name: 'FilePath' })
     filePath?:      string;
-    @Expose({ name: 'SHA256' })
+    // @Expose({ name: 'SHA256' })
     sha256?:        string;
-    @Expose({ name: 'FileName' })
+    // @Expose({ name: 'FileName' })
     fileName?:      string;
-    @Expose({ name: 'MalwareFamily' })
+    // @Expose({ name: 'MalwareFamily' })
     malwareFamily?: string;
-    @Expose({ name: 'DocumentId' })
+    // @Expose({ name: 'DocumentId' })
     documentId?:    string;
-    @Expose({ name: 'FileVerdict' })
+    // @Expose({ name: 'FileVerdict' })
     fileVerdict?:   string;
-    @Expose({ name: 'FileSize' })
+    // @Expose({ name: 'FileSize' })
     fileSize?:      string;
 }
 
@@ -31,42 +31,42 @@ export class AppAccessContext {
 }
 
 export class Office365 {
-    @Expose({ name: 'LastModifiedBy' })
+    // @Expose({ name: 'LastModifiedBy' })
     lastModifiedBy?:   string;
-    @Expose({ name: 'LastModifiedDate' })
+    // @Expose({ name: 'LastModifiedDate' })
     lastModifiedDate?: Date;
-    @Expose({ name: 'DetectionMethod' })
+    // @Expose({ name: 'DetectionMethod' })
     detectionMethod?:  string;
-    @Expose({ name: 'UserKey' })
+    // @Expose({ name: 'UserKey' })
     userKey?:          string;
-    @Expose({ name: 'Operation' })
+    // @Expose({ name: 'Operation' })
     operation?:        string;
-    @Expose({ name: 'OrganizationId' })
+    // @Expose({ name: 'OrganizationId' })
     organizationId?:   string;
-    @Expose({ name: 'EventDeepLink' })
+    // @Expose({ name: 'EventDeepLink' })
     eventDeepLink?:    string;
-    @Expose({ name: 'SourceWorkload' })
+    // @Expose({ name: 'SourceWorkload' })
     sourceWorkload?:   string;
-    @Expose({ name: 'Workload' })
+    // @Expose({ name: 'Workload' })
     workload?:         string;
-    @Expose({ name: 'RecordType' })
+    // @Expose({ name: 'RecordType' })
     recordType?:       string;
-    @Expose({ name: 'Version' })
+    // @Expose({ name: 'Version' })
     version?:          string;
-    @Expose({ name: 'UserId' })
+    // @Expose({ name: 'UserId' })
     userId?:           string;
-    @Expose({ name: 'DetectionDate' })
+    // @Expose({ name: 'DetectionDate' })
     detectionDate?:    Date;
-    @Expose({ name: 'CreationTime' })
+    // @Expose({ name: 'CreationTime' })
     creationTime?:     Date;
-    @Expose({ name: 'Id' })
+    // @Expose({ name: 'Id' })
     id?:               string;
-    @Expose({ name: 'Subscription' })
+    // @Expose({ name: 'Subscription' })
     subscription?:     string;
-    @Expose({ name: 'UserType' })
+    // @Expose({ name: 'UserType' })
     userType?:         string;
     @Type(() => FileData)
-    @Expose({ name: 'FileData' })
+    // @Expose({ name: 'FileData' })
     fileData?:         FileData;
 
     // de rule.id 91700

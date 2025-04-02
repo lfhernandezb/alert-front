@@ -8,7 +8,7 @@ export class Rule {
     description?: string;
     groups?:      string[];
     id?:          string;
-    @Expose({ name: 'pci_dss' })
+    // @Expose({ name: 'pci_dss' })
     pciDss?:     string[];
     tsc?:         string[];
     @Type(() => Mitre)

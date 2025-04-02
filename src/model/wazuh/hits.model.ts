@@ -6,7 +6,7 @@ import { Total } from "./total.model";
 // @JsonObject()
 export class Hits {
     total?:    Total;
-    @Expose({ name: "max_score" })
+    // @Expose({ name: "max_score" })
     maxScore?: number;
     @Type(() => Hit)
     hits?:     Hit[];

@@ -1,35 +1,5 @@
 // import classNames from 'classnames'
 
-interface WazuhSeverity {
-  id: number;
-  name: string;
-}
-
-const severities: WazuhSeverity[] = [
-  { id: 0, name: 'Baja' },
-  { id: 1, name: 'Baja' },
-  { id: 2, name: 'Baja' },
-  { id: 3, name: 'Baja' },
-  { id: 4, name: 'Baja' },
-  { id: 5, name: 'Baja' },
-  { id: 6, name: 'Baja' },
-  { id: 7, name: 'Media' },
-  { id: 8, name: 'Media' },
-  { id: 9, name: 'Media' },
-  { id: 10, name: 'Media' },
-  { id: 11, name: 'Media' },
-  { id: 12, name: 'Alta' },
-  { id: 13, name: 'Alta' },
-  { id: 14, name: 'Alta' },
-  { id: 15, name: 'Crítica' },
-  { id: 16, name: 'Crítica' },
-]
-
-const alerts: Source[] = getAlerts();
-
-// Descending Order of severity
-alerts.sort((a, b) => (b.rule?.level || 0) - (a.rule?.level || 0));
-
 import {
   CAvatar,
   CButton,
@@ -82,28 +52,47 @@ import avatar6 from '../../assets/images/avatars/6.jpg'
 import WidgetsBrand from '../widgets/WidgetsBrand'
 import WidgetsDropdown from '../widgets/WidgetsDropdown'
 import MainChart from './MainChart'
-import { getAlerts } from '../../services/alert.service'
-import { Source } from '../../model/wazuh/source.model';
 
 import { useNavigate } from 'react-router-dom';
+import { InfraEvent } from '../../model/infra-event.model'
+import { getAllEvents } from '../../services/event.service'
+
+const events: InfraEvent[] = await getAllEvents();
+
+const severities = {
+  'Baja': 0,
+  'Media': 1,
+  'Alta': 2,
+  'Crítica': 3,
+};
+
+// Descending Order of severity
+const severitiesMap: { [key: string]: number } = {};
+Object.entries(severities).forEach(([key, value]) => {
+  severitiesMap[key] = value;
+});
+
+
+events.sort((a, b) => (severitiesMap[b.severity || ''] || 0) - (severitiesMap[a.severity || ''] || 0));
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  const handleDetail = (alertId: string) => {
-    console.log(`Detalle button clicked for alert ID: ${alertId}`)
+  const handleDetail = (eventId: number) => {
+    console.log(`Detalle button clicked for event ID: ${eventId}`)
     // Add your logic here (e.g., navigate to a detail page or show a modal)
-    navigate(`/dashboard/alert-detail/${alertId}`);
+    navigate(`/dashboard/event-detail/${eventId}`);
   }
 
-  const handleEscalate = (alertId: string) => {
-    console.log(`Escalar button clicked for alert ID: ${alertId}`)
-    // Add your logic here (e.g., send an API request to escalate the alert)
+  const handleEscalate = (eventId: number) => {
+    console.log(`Escalar button clicked for event ID: ${eventId}`)
+    // Add your logic here (e.g., send an API request to escalate the event)
   }
 
-  const handleDismiss = (alertId: string) => {
-    console.log(`Descartar button clicked for alert ID: ${alertId}`)
-    // Add your logic here (e.g., remove the alert from the list)
+  const handleDismiss = (eventId: number) => {
+    console.log(`Descartar button clicked for event ID: ${eventId}`)
+    // Add your logic here (e.g., remove the event from the list)
   }
 
   const progressExample = [
@@ -395,45 +384,50 @@ const Dashboard = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {alerts.map((alert) => (
-                    <CTableRow v-for="alert in alerts" key={alert.id}>
+                  {events.map((event) => (
+                    <CTableRow v-for="event in events" key={event.id}>
                       {/* <CTableDataCell className="text-center">
                         <CAvatar size="md" src={item.avatar.src} status={item.avatar.status} />
                       </CTableDataCell> */}
                       <CTableDataCell>
                         <div>
-                          {alert.rule?.level !== undefined ? severities.find(severity => severity.id === alert.rule?.level)?.name || 'Unknown' : 'Unknown'}
+                          {event.severity}
                         </div>
                         <div className="small text-body-secondary text-nowrap">
-                          {alert.sourceTimestamp}
+                          {event.timestamp?.toString()}
                         </div>
                       </CTableDataCell>
                       <CTableDataCell>
-                        <div>{alert.agent?.ip}</div>
-                       </CTableDataCell>
+                        <div>
+                          {event.equipment?.name || 'Nombre Desconocido'}
+                        </div>
+                        <div className="small text-body-secondary text-nowrap">
+                          {event.equipment?.ip || 'IP Desconocida'}
+                        </div>
+                      </CTableDataCell>
                       <CTableDataCell>
-                        <div>{alert.rule?.description}</div>
+                        <div>{event.description}</div>
                       </CTableDataCell>
                       <CTableDataCell>
                         <CButtonGroup role="group" aria-label="Basic example">
                           <CButton
                             color="primary"
                             variant="outline"
-                            onClick={() => handleDetail(alert.id!)}
+                            onClick={() => handleDetail(event.id!)}
                           >
                             Detalle
                           </CButton>
                           <CButton
                             color="primary"
                             variant="outline"
-                            onClick={() => handleEscalate(alert.id!)}
+                            onClick={() => handleEscalate(event.id!)}
                           >
                             Escalar
                           </CButton>
                           <CButton
                             color="primary"
                             variant="outline"
-                            onClick={() => handleDismiss(alert.id!)}
+                            onClick={() => handleDismiss(event.id!)}
                           >
                             Descartar
                           </CButton>

@@ -16,10 +16,10 @@ export class Response {
     // @JsonProperty({ name: "took" })
     took?:     number;
     // @JsonProperty({ name: "timed_out" })
-    @Expose({ name: "timed_out" })
+    // @Expose({ name: "timed_out" })
     timedOut?: boolean;
     // @JsonProperty({ name: "_shards", type: Shards })
-    @Expose({ name: "_shards" })
+    // @Expose({ name: "_shards" })
     shards?:   Shards;
     // @JsonProperty({ name: "hits" })
     @Type(() => Hits)
