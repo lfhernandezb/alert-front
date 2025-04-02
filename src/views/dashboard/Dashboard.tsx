@@ -56,8 +56,7 @@ import MainChart from './MainChart'
 import { useNavigate } from 'react-router-dom';
 import { InfraEvent } from '../../model/infra-event.model'
 import { getAllEvents } from '../../services/event.service'
-
-const events: InfraEvent[] = await getAllEvents();
+import { use, useEffect, useState } from 'react'
 
 const severities = {
   'Baja': 0,
@@ -66,18 +65,59 @@ const severities = {
   'Crítica': 3,
 };
 
-// Descending Order of severity
-const severitiesMap: { [key: string]: number } = {};
-Object.entries(severities).forEach(([key, value]) => {
-  severitiesMap[key] = value;
-});
-
-
-events.sort((a, b) => (severitiesMap[b.severity || ''] || 0) - (severitiesMap[a.severity || ''] || 0));
-
 
 const Dashboard = () => {
+
+  return <DashboardContent />;
+};
+
+const DashboardContent = () => {
+  const [events, setEvents] = useState<InfraEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const fetchedEvents: InfraEvent[] = await getAllEvents();
+        setEvents(fetchedEvents);
+
+        // Descending Order of severity
+        const severitiesMap: { [key: string]: number } = {};
+        Object.entries(severities).forEach(([key, value]) => {
+          severitiesMap[key] = value;
+        });
+        // Sort events based on severity 
+      
+        fetchedEvents.sort((a, b) => (severitiesMap[b.severity || ''] || 0) - (severitiesMap[a.severity || ''] || 0));
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        setError('Error fetching events');
+        setLoading(false);
+      }
+    };
+
+  // Call fetchEvent immediately and set up an interval
+    fetchEvents();
+    const intervalId = setInterval(fetchEvents, 30000); // Call every 60 seconds
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  if (error) { 
+    return <div>{error}</div>;
+  }
+  if (!events || events.length === 0) {
+    return <div>No events found</div>;
+  }
+   
 
   const handleDetail = (eventId: number) => {
     console.log(`Detalle button clicked for event ID: ${eventId}`)

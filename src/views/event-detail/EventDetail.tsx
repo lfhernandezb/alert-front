@@ -211,7 +211,12 @@ const EventDetailContent = ({ eventId }: { eventId: string | undefined }) => {
       setLoading(false);
     };
 
+    // Call fetchEvent immediately and set up an interval
     fetchEvent();
+    // const intervalId = setInterval(fetchEvent, 60000); // Call every 60 seconds
+
+    // Cleanup interval on component unmount
+    // return () => clearInterval(intervalId);
   }, [eventId]);
 
   if (loading) {
