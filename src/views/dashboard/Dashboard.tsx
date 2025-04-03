@@ -10,10 +10,13 @@ import {
   CCardHeader,
   CCol,
   CFormCheck,
+  CFormSelect,
   CModal,
   CModalBody,
   CModalFooter,
   CModalHeader,
+  CPagination,
+  CPaginationItem,
   CProgress,
   CRow,
   CTable,
@@ -61,7 +64,7 @@ import MainChart from './MainChart'
 import { useNavigate } from 'react-router-dom';
 import { InfraEvent } from '../../model/infra-event.model'
 import { getAllEvents, getEventById, updateEvent } from '../../services/event.service'
-import { useEffect, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import { Result } from '../../model/zabbix/response.model'
 import { plainToInstance } from 'class-transformer'
 import { DataOffice365 } from '../../model/wazuh/data-office365.model'
@@ -84,6 +87,9 @@ const Dashboard = () => {
 };
 
 const DashboardContent = () => {
+  // events displayed in page
+  const [displayedEvents, setDisplayedEvents] = useState<InfraEvent[]>([]);
+  // events fetched from API and filtered
   const [events, setEvents] = useState<InfraEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,10 +99,40 @@ const DashboardContent = () => {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null); // State for selected event ID
   const [detail, setDetail] = useState<string>(''); // State for event details
 
-  const navigate = useNavigate();
+  // State for checkboxes
+  const [showAll, setShowAll] = useState(true);
+  const [showActive, setShowActive] = useState(false);
+  const [showEscalated, setShowEscalated] = useState(false);
+  const [showDiscarded, setShowDiscarded] = useState(false);
+  
+  // State for events per page
+  const [selectedEventsPerPage, setSelectedEventsPerPage] = useState<number>(1); // State for selected limit
+
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  // const [eventsPerPage, setEventsPerPage] = useState(1);
+  // const [totalEvents, setTotalEvents] = useState(0);
+  
+  // const navigate = useNavigate();
+
+  const filterEvents = (events: InfraEvent[]) => {
+    if (showAll) {
+      return events;
+    }
+
+    return events.filter((event) => {
+      if (showActive && event.status === 'active') return true;
+      if (showEscalated && event.status === 'escalated') return true;
+      if (showDiscarded && event.status === 'discarded') return true;
+      return false;
+    });
+  }
 
   useEffect(() => {
+    console.log("useEffect 1");
     const fetchEvents = async () => {
+      console.log("fetchEvents");
       // if a modal is open, do dot refresh events
       if (detailModalVisible || escalateModalVisible || discardModalVisible) {
         return;
@@ -115,48 +151,25 @@ const DashboardContent = () => {
         fetchedEvents.sort((a, b) => (severitiesMap[b.severity || ''] || 0) - (severitiesMap[a.severity || ''] || 0));
 
         // filter events based on CFormCheck options checked
+        const filteredEvents = filterEvents(fetchedEvents);
 
-        if ((document.getElementById('inlineCheckboxAll') as HTMLInputElement)?.checked) {
-          // allEvents = fetchedEvents;
-        } else {
-          let active: boolean = false;
-          let escalated: boolean = false;
-          let discarded: boolean = false;
-
-          if ((document.getElementById('inlineCheckboxActive') as HTMLInputElement)?.checked) {
-            active = true;
-          }
-          if ((document.getElementById('inlineCheckboxDiscarded') as HTMLInputElement)?.checked) {
-            discarded = true;
-          }
-          if ((document.getElementById('inlineCheckboxEscalated') as HTMLInputElement)?.checked) {
-            escalated = true;
-          }
-
-          if (active && escalated && discarded) {
-            fetchedEvents.filter(event => event.status === 'active'|| event.status === 'escalated' || event.status === 'discarded');
-          } else if (active && escalated && !discarded) {
-            fetchedEvents.filter(event => event.status === 'active' || event.status === 'escalated');
-          } else if (active && !escalated && discarded) {
-            fetchedEvents.filter(event => event.status === 'active' || event.status === 'discarded');
-          } else if (!active && escalated && discarded) {
-            fetchedEvents.filter(event => event.status === 'escalated' || event.status === 'discarded');
-          } else if (active && !escalated && !discarded) {
-            fetchedEvents.filter(event => event.status === 'active');
-          } else if (!active && escalated && !discarded) {
-            fetchedEvents.filter(event => event.status === 'escalated');
-          } else if (!active && !escalated && discarded) {
-            fetchedEvents.filter(event => event.status === 'discarded');
-          } else if (!active && !escalated && !discarded) {
-            // No events to show
-          }
-        }
+        setEvents(filteredEvents);
 
         // const allEvents = fetchedEvents.filter(event => event.status === 'all');
         // const escalatedEvents = fetchedEvents.filter(event => event.status === 'escalated');
         // const discardedEvents = fetchedEvents.filter(event => event.status === 'discarded');
 
-        setEvents(fetchedEvents);
+        // pagination logic
+        const eventsArraySize = filteredEvents.length
+        // const eventsPerPage = selectedEventsPerPage;
+        console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
+        setTotalPages(Math.ceil(eventsArraySize / selectedEventsPerPage));
+        console.log('Current page:', currentPage); // Log the current page
+        const startIndex = (currentPage - 1) * selectedEventsPerPage;
+        const endIndex = startIndex + selectedEventsPerPage;
+        const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
+
+        setDisplayedEvents(paginatedEvents);
 
         setLoading(false);
       } catch (error) {
@@ -172,18 +185,86 @@ const DashboardContent = () => {
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, []);
+  }, [showAll, showActive, showEscalated, showDiscarded, detailModalVisible, escalateModalVisible, discardModalVisible, currentPage]);
   
+  useEffect(() => {
+    console.log("useEffect 2");
+    console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
+    console.log('events lenght:', events.length); // Log the paginated events
+    // const eventsPerPage = selectedEventsPerPage;
+    setTotalPages(Math.ceil(events.length / selectedEventsPerPage));
+    setCurrentPage(1); // Reset to the first page when eventsPerPage changes
+    const startIndex = (0) * selectedEventsPerPage;
+    const endIndex = startIndex + selectedEventsPerPage;
+    const paginatedEvents = events.slice(startIndex, endIndex);
+
+    console.log('Paginated events:', paginatedEvents); // Log the paginated events
+    console.log('Total pages:', totalPages); // Log the total pages
+    console.log('Current page:', currentPage); // Log the current page
+    console.log('Paginated events lenght:', paginatedEvents.length); // Log the paginated events
+
+    setDisplayedEvents(paginatedEvents);
+  }, [selectedEventsPerPage]);
+  
+  useEffect(() => {
+    console.log("useEffect 3");
+    console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
+    console.log('events lenght:', events.length); // Log the paginated events
+    const startIndex = (currentPage - 1) * selectedEventsPerPage;
+    const endIndex = startIndex + selectedEventsPerPage;
+    const paginatedEvents = events.slice(startIndex, endIndex);
+
+    console.log('Paginated events:', paginatedEvents); // Log the paginated events
+    console.log('Total pages:', totalPages); // Log the total pages
+    console.log('Current page:', currentPage); // Log the current page
+    console.log('Paginated events lenght:', paginatedEvents.length); // Log the paginated events
+
+    setDisplayedEvents(paginatedEvents);
+  }, [currentPage]);
+  
+  const handleCheckboxChange = (checkbox: string) => {
+    switch (checkbox) {
+      case 'all':
+        setShowAll(true);
+        setShowActive(false);
+        setShowEscalated(false);
+        setShowDiscarded(false);
+        break;
+      case 'active':
+        setShowAll(false);
+        setShowActive(!showActive);
+        break;
+      case 'escalated':
+        setShowAll(false);
+        setShowEscalated(!showEscalated);
+        break;
+      case 'discarded':
+        setShowAll(false);
+        setShowDiscarded(!showDiscarded);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleEventsPerPageSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = parseInt(event.target.value, 10); // Convert the value to a number
+    setSelectedEventsPerPage(selectedValue); // Update the state
+    console.log('Selected value:', selectedValue); // Log the selected value
+    // Add any additional logic here, such as fetching data based on the selected limit
+  };
+
   if (loading) {
     return <div>Cargando...</div>;
   }
   if (error) { 
     return <div>{error}</div>;
   }
+  /*
   if (!events || events.length === 0) {
     return <div>En este momento no hay eventos activos</div>;
   }
-   
+  */
 
   const handleDetail = async (eventId: number) => {
     console.log(`Detalle button clicked for event ID: ${eventId}`)
@@ -385,7 +466,9 @@ const DashboardContent = () => {
 
     const updatedEvent = await updateEvent({id: selectedEventId!, status: 'discarded'}).then((response) => {
       console.log('Event discarded:', updatedEvent);
-      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+      // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+
+      filterEvents(events);
     }).catch((error) => {
       console.error('Error discarding event:', error);
     });
@@ -422,7 +505,9 @@ const DashboardContent = () => {
 
     const updatedEvent = await updateEvent({id: selectedEventId!, status: 'escalated'}).then((response) => {
       console.log('Event escalated:', updatedEvent);
-      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+      // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
+
+      filterEvents(events);
     }).catch((error) => {
       console.error('Error discarding event:', error);
     });
@@ -623,13 +708,137 @@ const DashboardContent = () => {
       <CRow>
         <CCol xs>
           <CCard className="mb-4">
+            {/*
             <CCardHeader>
               Eventos
-              <CFormCheck inline id="inlineCheckboxAll" value="option1" label="Todos" />
-              <CFormCheck inline id="inlineCheckboxActive" value="option2" label="Activos" />
-              <CFormCheck inline id="inlineCheckboxEscalated" value="option2" label="Escalados" />
-              <CFormCheck inline id="inlineCheckboxDiscarded" value="option3" label="Descartados" />
+              <CFormCheck
+                inline
+                id="inlineCheckboxAll"
+                value="all"
+                label="Todos"
+                checked={showAll}
+                onChange={() => handleCheckboxChange('all')}
+              />
+              <CFormCheck
+                inline
+                id="inlineCheckboxActive"
+                value="active"
+                label="Activos"
+                checked={showActive}
+                onChange={() => handleCheckboxChange('active')}
+              />
+              <CFormCheck
+                inline
+                id="inlineCheckboxEscalated"
+                value="escalated"
+                label="Escalados"
+                checked={showEscalated}
+                onChange={() => handleCheckboxChange('escalated')}
+              />
+              <CFormCheck
+                inline
+                id="inlineCheckboxDiscarded"
+                value="discarded"
+                label="Descartados"
+                checked={showDiscarded}
+                onChange={() => handleCheckboxChange('discarded')}
+              />
+
+              <CFormSelect aria-label="Default select example">
+                <option>Open this select menu</option>
+                <option value="1">One</option>
+                <option value="2">Two</option>
+                <option value="3" disabled>Three</option>
+              </CFormSelect>
             </CCardHeader>
+            */}
+
+
+{/*
+### **Explanation**
+
+1. **Flexbox Container**:
+   - The `div` wrapping the `CFormCheck` and `CFormSelect` elements is styled with `d-flex` (CoreUI's utility class for flexbox).
+   - `justify-content-between` ensures that the `CFormCheck` group is aligned to the left and the `CFormSelect` is aligned to the right.
+   - `align-items-center` vertically aligns the elements in the center.
+
+2. **Separate Sections**:
+   - The `CFormCheck` elements are grouped in a `div` with `d-flex` to align them horizontally.
+   - The `CFormSelect` is placed in the same flex container but positioned to the right using `justify-content-between`.
+
+3. **Custom Width for `CFormSelect`**:
+   - The `style={{ width: '200px' }}` ensures the dropdown has a fixed width. You can adjust this value as needed.
+
+---
+
+### **Result**
+The `CFormCheck` elements will be aligned horizontally on the left, and the `CFormSelect` will be positioned to the right in the same row. This layout is responsive and works well with CoreUI's utility classes.
+
+Similar code found with 1 license type
+
+*/}
+            
+            <CCardHeader>
+              
+              <div className="d-flex justify-content-between align-items-center">
+                {/* Left Section: CFormCheck */}
+                <div className="d-flex">
+                <span className="me-3">Eventos</span> {/* Add margin to the right */}
+                  <CFormCheck
+                    inline
+                    id="inlineCheckboxAll"
+                    value="all"
+                    label="Todos"
+                    checked={showAll}
+                    onChange={() => handleCheckboxChange('all')}
+                  />
+                  <CFormCheck
+                    inline
+                    id="inlineCheckboxActive"
+                    value="active"
+                    label="Activos"
+                    checked={showActive}
+                    onChange={() => handleCheckboxChange('active')}
+                  />
+                  <CFormCheck
+                    inline
+                    id="inlineCheckboxEscalated"
+                    value="escalated"
+                    label="Escalados"
+                    checked={showEscalated}
+                    onChange={() => handleCheckboxChange('escalated')}
+                  />
+                  <CFormCheck
+                    inline
+                    id="inlineCheckboxDiscarded"
+                    value="discarded"
+                    label="Descartados"
+                    checked={showDiscarded}
+                    onChange={() => handleCheckboxChange('discarded')}
+                  />
+                </div>
+
+                {/* Right Section: CFormSelect */}
+                <div className="d-flex align-items-center">
+                  <label htmlFor="eventLimit" className="me-2">
+                    Eventos por Página:
+                  </label>
+                  <CFormSelect
+                    id="eventLimit"
+                    aria-label="Default select example"
+                    style={{ width: '200px' }}
+                    value={selectedEventsPerPage} // Bind the state to the select element
+                    onChange={handleEventsPerPageSelectChange} // Attach the change handler
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="5">5</option>
+                  </CFormSelect>
+                </div>
+              </div>
+            </CCardHeader>
+            
+
             <CCardBody>
 {/*               <CRow>
                 <CCol xs={12} md={6} xl={6}>
@@ -715,6 +924,38 @@ const DashboardContent = () => {
 
               <br />
  */}
+
+              <CPagination aria-label="Page navigation example">
+                {/* Previous Button */}
+                <CPaginationItem
+                  aria-label="Previous"
+                  disabled={currentPage === 1} // Disable if on the first page
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} // Decrement page
+                >
+                  &laquo;
+                </CPaginationItem>
+
+                {/* Dynamically Generate Page Items */}
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <CPaginationItem
+                    key={index + 1}
+                    active={currentPage === index + 1} // Highlight the current page
+                    onClick={() => setCurrentPage(index + 1)} // Set the current page
+                  >
+                    {index + 1}
+                  </CPaginationItem>
+                ))}
+
+                {/* Next Button */}
+                <CPaginationItem
+                  aria-label="Next"
+                  disabled={currentPage === totalPages} // Disable if on the last page
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} // Increment page
+                >
+                  &raquo;
+                </CPaginationItem>
+              </CPagination>
+
               <CTable align="middle" className="mb-0 border" hover responsive>
                 <CTableHead className="text-nowrap">
                   <CTableRow>
@@ -736,7 +977,7 @@ const DashboardContent = () => {
                   </CTableRow>
                 </CTableHead>
                 <CTableBody>
-                  {events.map((event) => (
+                  {displayedEvents.map((event) => (
                     <CTableRow v-for="event in events" key={event.id}>
                       {/* <CTableDataCell className="text-center">
                         <CAvatar size="md" src={item.avatar.src} status={item.avatar.status} />

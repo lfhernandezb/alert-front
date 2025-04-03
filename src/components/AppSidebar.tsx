@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import {
   CCloseButton,
+  CImage,
   CSidebar,
   CSidebarBrand,
   CSidebarFooter,
@@ -15,6 +16,10 @@ import { AppSidebarNav, NavItem } from './AppSideberNav'
 
 import { logo } from '../assets/brand/logo'
 import { sygnet } from '../assets/brand/sygnet'
+// Import your SVG file
+import acantoLogoSvg from '../assets/brand/acanto-logo.svg'
+import acantoLogo from '../assets/brand/acanto-logo.jpg';
+
 
 // sidebar nav config
 import navigation from '../_nav'
@@ -37,8 +42,9 @@ const AppSidebar = () => {
     >
       <CSidebarHeader className="border-bottom">
         <CSidebarBrand href="/">
-          <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
+          {/* <CIcon customClassName="sidebar-brand-full" icon={acantoLogoSvg} height={32} /> */}
+          {/* <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} /> */}
+          <CImage align="center" rounded src={acantoLogo} height={32} />
         </CSidebarBrand>
         <CCloseButton
           className="d-lg-none"
