@@ -1,12 +1,20 @@
-// import classNames from 'classnames'
+import { InfraEvent } from '../../model/infra-event.model'
+import { getAllEvents, getEventById, updateEvent } from '../../services/event.service'
+import { useEffect, useRef } from 'react'
+import { useEventStore } from '../../store/event-store'
+import { Result } from '../../model/zabbix/response.model'
+import { plainToInstance } from 'class-transformer'
+import { DataOffice365 } from '../../model/wazuh/data-office365.model'
+import { DataPkg } from '../../model/wazuh/data-pkg.model'
+import { DataFw } from '../../model/wazuh/data-fw.model'
+import { DataWin } from '../../model/wazuh/data-win.model'
+import { Source } from '../../model/wazuh/source.model'
 
 import {
-  CAvatar,
   CButton,
   CButtonGroup,
   CCard,
   CCardBody,
-  CCardFooter,
   CCardHeader,
   CCol,
   CFormCheck,
@@ -17,7 +25,6 @@ import {
   CModalHeader,
   CPagination,
   CPaginationItem,
-  CProgress,
   CRow,
   CTable,
   CTableBody,
@@ -27,51 +34,7 @@ import {
   CTableRow,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import {
-  cibCcAmex,
-  cibCcApplePay,
-  cibCcMastercard,
-  cibCcPaypal,
-  cibCcStripe,
-  cibCcVisa,
-  cibGoogle,
-  cibFacebook,
-  cibLinkedin,
-  cifBr,
-  cifEs,
-  cifFr,
-  cifIn,
-  cifPl,
-  cifUs,
-  cibTwitter,
-  cilCloudDownload,
-  cilPeople,
-  cilUser,
-  cilUserFemale,
-} from '@coreui/icons'
-
-import avatar1 from '../../assets/images/avatars/1.jpg'
-import avatar2 from '../../assets/images/avatars/2.jpg'
-import avatar3 from '../../assets/images/avatars/3.jpg'
-import avatar4 from '../../assets/images/avatars/4.jpg'
-import avatar5 from '../../assets/images/avatars/5.jpg'
-import avatar6 from '../../assets/images/avatars/6.jpg'
-
-import WidgetsBrand from '../widgets/WidgetsBrand'
-import WidgetsDropdown from '../widgets/WidgetsDropdown'
-import MainChart from './MainChart'
-
-import { useNavigate } from 'react-router-dom';
-import { InfraEvent } from '../../model/infra-event.model'
-import { getAllEvents, getEventById, updateEvent } from '../../services/event.service'
-import { use, useEffect, useState } from 'react'
-import { Result } from '../../model/zabbix/response.model'
-import { plainToInstance } from 'class-transformer'
-import { DataOffice365 } from '../../model/wazuh/data-office365.model'
-import { DataPkg } from '../../model/wazuh/data-pkg.model'
-import { DataFw } from '../../model/wazuh/data-fw.model'
-import { DataWin } from '../../model/wazuh/data-win.model'
-import { Source } from '../../model/wazuh/source.model'
+import { cilMagnifyingGlass, cilTrash, cilWarning } from '@coreui/icons'
 
 const severities = {
   'Baja': 0,
@@ -87,6 +50,14 @@ const Dashboard = () => {
 };
 
 const DashboardContent = () => {
+
+  // flags to avoid run useEffect's on mount
+  const isMounted1 = useRef(false); // Ref to track if the component has mounted
+  const isMounted2 = useRef(false); // Ref to track if the component has mounted
+  const isMounted3 = useRef(false); // Ref to track if the component has mounted
+  const isMounted4 = useRef(false); // Ref to track if the component has mounted
+
+  /* replaced by zuztand
   // events displayed in page
   const [displayedEvents, setDisplayedEvents] = useState<InfraEvent[]>([]);
   // events fetched from API and filtered
@@ -113,7 +84,48 @@ const DashboardContent = () => {
   const [totalPages, setTotalPages] = useState(0);
   // const [eventsPerPage, setEventsPerPage] = useState(1);
   // const [totalEvents, setTotalEvents] = useState(0);
+  */
+
+    const {
+      events,
+      displayedEvents,
+      selectedEventId,
+      detail,
+      detailModalVisible,
+      escalateModalVisible,
+      discardModalVisible,
+      currentPage,
+      selectedEventsPerPage,
+      showAll,
+      showActive,
+      showEscalated,
+      showDiscarded,
+      totalPages,
+      loading,
+      error,
+      scrollPosition,
+      setScrollPosition,
+      setEvents,
+      setDisplayedEvents,
+      setSelectedEventId,
+      setDetail,
+      setDetailModalVisible,
+      setEscalateModalVisible,
+      setDiscardModalVisible,
+      setCurrentPage,
+      setSelectedEventsPerPage,
+      setLoading,
+      setError,
+      setShowActive,
+      setShowEscalated,
+      setShowDiscarded,
+      setShowAll,
+      setTotalPages, // Removed as it does not exist in EventStore
+
+    } = useEventStore();
   
+
+
   // const navigate = useNavigate();
 
   const filterEvents = (events: InfraEvent[]) => {
@@ -130,6 +142,13 @@ const DashboardContent = () => {
   }
 
   useEffect(() => {
+    /*
+    if (!isMounted1.current) {
+      // Skip the first execution on mount
+      isMounted1.current = true;
+      return;
+    }
+    */
     console.log("useEffect 1");
     const fetchEvents = async () => {
       console.log("fetchEvents");
@@ -137,9 +156,12 @@ const DashboardContent = () => {
       if (detailModalVisible || escalateModalVisible || discardModalVisible) {
         return;
       }
-      setLoading(true);
+      // setLoading(true);
       try {
         const fetchedEvents: InfraEvent[] = await getAllEvents();
+
+        // console.log('Fetched events:', fetchedEvents);
+        // console.log('Fetched events number:', fetchedEvents.length);
 
         // Descending Order of severity
         const severitiesMap: { [key: string]: number } = {};
@@ -150,32 +172,62 @@ const DashboardContent = () => {
       
         fetchedEvents.sort((a, b) => (severitiesMap[b.severity || ''] || 0) - (severitiesMap[a.severity || ''] || 0));
 
+        // console.log('Sorted events:', fetchedEvents);
+
         // filter events based on CFormCheck options checked
         const filteredEvents = filterEvents(fetchedEvents);
 
-        setEvents(filteredEvents);
+
+
+        // compare the id's of filteres events with the id's of events to see if they are the same
+        const filteredEventsIds = filteredEvents.map(event => event.id);
+        const eventsIds = events.map(event => event.id);
+        console.log('Filtered events ids:', filteredEventsIds);
+        console.log('Events ids:', eventsIds);
+        // if they are the same, do not update the state
+        if (JSON.stringify(filteredEventsIds) !== JSON.stringify(eventsIds)) {
+          console.log('Filteres events are distincts to events');
+          setEvents(filteredEvents);
+        }
 
         // const allEvents = fetchedEvents.filter(event => event.status === 'all');
         // const escalatedEvents = fetchedEvents.filter(event => event.status === 'escalated');
         // const discardedEvents = fetchedEvents.filter(event => event.status === 'discarded');
 
         // pagination logic
-        const eventsArraySize = filteredEvents.length
+   
         // const eventsPerPage = selectedEventsPerPage;
-        console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
-        setTotalPages(Math.ceil(eventsArraySize / selectedEventsPerPage));
-        console.log('Current page:', currentPage); // Log the current page
+        // console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
+        //    setTotalPages(Math.ceil(eventsArraySize / selectedEventsPerPage)); // Removed as setTotalPages is not defined
+        // console.log('Current page:', currentPage); // Log the current page
         const startIndex = (currentPage - 1) * selectedEventsPerPage;
         const endIndex = startIndex + selectedEventsPerPage;
         const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
 
+        // compare the id's of paginated events with the id's of displayed events to see if they are the same
+        const displayedEventsIds = displayedEvents.map(event => event.id);
+        const paginatedEventsIds = paginatedEvents.map(event => event.id);
+        console.log('Displayed events ids:', displayedEventsIds);
+        console.log('Paginated events ids:', paginatedEventsIds);
+        // if they are the same, do not update the state
+        if (JSON.stringify(displayedEventsIds) === JSON.stringify(paginatedEventsIds)) {
+          console.log('Displayed events are the same as paginated events');
+          // setLoading(false);
+          return;
+        }
+        
+        // eventually we could have loaded more or less events than before
+        setTotalPages(Math.ceil(filteredEvents.length / selectedEventsPerPage));
+
         setDisplayedEvents(paginatedEvents);
 
-        setLoading(false);
+        // setLoading(false);
+
+        setError(null); // Clear any previous error
       } catch (error) {
         console.error('Error fetching events:', error);
         setError('Error fetching events');
-        setLoading(false);
+        // setLoading(false);
       }
     };
 
@@ -185,12 +237,18 @@ const DashboardContent = () => {
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, [showAll, showActive, showEscalated, showDiscarded, detailModalVisible, escalateModalVisible, discardModalVisible, currentPage]);
+  }, [showAll, showActive, showEscalated, showDiscarded, detailModalVisible, escalateModalVisible, discardModalVisible]);
   
   useEffect(() => {
+    if (!isMounted2.current) {
+      // Skip the first execution on mount
+      isMounted2.current = true;
+      return;
+    }
+
     console.log("useEffect 2");
-    console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
-    console.log('events lenght:', events.length); // Log the paginated events
+    // console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
+    // console.log('events lenght:', events.length); // Log the paginated events
     // const eventsPerPage = selectedEventsPerPage;
     setTotalPages(Math.ceil(events.length / selectedEventsPerPage));
     setCurrentPage(1); // Reset to the first page when eventsPerPage changes
@@ -198,29 +256,75 @@ const DashboardContent = () => {
     const endIndex = startIndex + selectedEventsPerPage;
     const paginatedEvents = events.slice(startIndex, endIndex);
 
-    console.log('Paginated events:', paginatedEvents); // Log the paginated events
-    console.log('Total pages:', totalPages); // Log the total pages
-    console.log('Current page:', currentPage); // Log the current page
-    console.log('Paginated events lenght:', paginatedEvents.length); // Log the paginated events
+    // console.log('Paginated events:', paginatedEvents); // Log the paginated events
+    // console.log('Total pages:', totalPages); // Log the total pages
+    // console.log('Current page:', currentPage); // Log the current page
+    // console.log('Paginated events lenght:', paginatedEvents.length); // Log the paginated events
 
     setDisplayedEvents(paginatedEvents);
   }, [selectedEventsPerPage]);
   
   useEffect(() => {
+    if (!isMounted3.current) {
+      // Skip the first execution on mount
+      isMounted3.current = true;
+      return;
+    }
+
     console.log("useEffect 3");
-    console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
-    console.log('events lenght:', events.length); // Log the paginated events
+    // console.log('Selected events per page:', selectedEventsPerPage); // Log the selected value
+    // console.log('events lenght:', events.length); // Log the paginated events
     const startIndex = (currentPage - 1) * selectedEventsPerPage;
     const endIndex = startIndex + selectedEventsPerPage;
     const paginatedEvents = events.slice(startIndex, endIndex);
 
-    console.log('Paginated events:', paginatedEvents); // Log the paginated events
-    console.log('Total pages:', totalPages); // Log the total pages
-    console.log('Current page:', currentPage); // Log the current page
-    console.log('Paginated events lenght:', paginatedEvents.length); // Log the paginated events
+    // console.log('Paginated events:', paginatedEvents); // Log the paginated events
+    // console.log('Total pages:', totalPages); // Log the total pages
+    // console.log('Current page:', currentPage); // Log the current page
+    // console.log('Paginated events lenght:', paginatedEvents.length); // Log the paginated events
 
     setDisplayedEvents(paginatedEvents);
   }, [currentPage]);
+
+  useEffect(() => {
+    /*
+    if (!isMounted4.current) {
+      // Skip the first execution on mount
+      isMounted4.current = true;
+      return;
+    }
+    */
+    console.log("useEffect 4");
+    console.log('Scroll position on useEffect 4:', scrollPosition); // Log the scroll position
+    // Restore scroll position on page load
+    window.scrollTo({
+      top: scrollPosition,
+      behavior: 'smooth', // 'auto' or 'smooth'
+    });
+      
+      //0, scrollPosition, );
+
+    // Save scroll position on scroll
+    const handleScroll = () => {
+      setScrollPosition(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    /*
+    window.addEventListener('focusin', () => {
+      console.log('Page focused');
+      // Restore scroll position when the page is focused
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'auto', // 'auto' or 'smooth'
+      });
+    });
+    */
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   
   const handleCheckboxChange = (checkbox: string) => {
     switch (checkbox) {
@@ -250,7 +354,7 @@ const DashboardContent = () => {
   const handleEventsPerPageSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = parseInt(event.target.value, 10); // Convert the value to a number
     setSelectedEventsPerPage(selectedValue); // Update the state
-    console.log('Selected value:', selectedValue); // Log the selected value
+    // console.log('Selected value:', selectedValue); // Log the selected value
     // Add any additional logic here, such as fetching data based on the selected limit
   };
 
@@ -267,7 +371,7 @@ const DashboardContent = () => {
   */
 
   const handleDetail = async (eventId: number) => {
-    console.log(`Detalle button clicked for event ID: ${eventId}`)
+    // console.log(`Detalle button clicked for event ID: ${eventId}`)
     // Add your logic here (e.g., navigate to a detail page or show a modal)
 
     // Detail in a separate page
@@ -302,8 +406,8 @@ const DashboardContent = () => {
             excludeExtraneousValues: false,
           });
 
-          console.log('source', source);
-          console.log('source.rule', source.rule);
+          // console.log('source', source);
+          // console.log('source.rule', source.rule);
 
           if (!source || !source.rule || !source.agent) {
             setDetail('Source not found');
@@ -343,7 +447,7 @@ const DashboardContent = () => {
                   });
                   // console.log(dataFw);
                   eventDetail += JSON.stringify(dataFw, null, 2);
-                  console.log(eventDetail);
+                  // console.log(eventDetail);
                 }
                   break;
               case "2903": {
@@ -352,7 +456,7 @@ const DashboardContent = () => {
                     excludeExtraneousValues: false,
                   });
                   eventDetail += JSON.stringify(dataPkg, null, 2);
-                  console.log(eventDetail);
+                  // console.log(eventDetail);
                 }
                   break;
               case "31151":
@@ -364,7 +468,7 @@ const DashboardContent = () => {
               case "750":
               case "31516": {
                     // related to servers, web servers, services, full_log
-                    console.log(alert);
+                    // console.log(alert);
                     // console.log(fullLog);
                     eventDetail += "full_log:\n";
                     eventDetail += fullLog ? fullLog : "No hay detalles";
@@ -421,7 +525,7 @@ const DashboardContent = () => {
   }
 
   const handleEscalateDetail = () => {
-    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
     // Add your logic here (e.g., send an API request to escalate the event)
     // setDetailModalVisible(false); // Close the modal
     // setDetail(''); // Clear the details
@@ -430,7 +534,7 @@ const DashboardContent = () => {
   };
 
   const handleDiscardDetail = () => {
-    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
     // Add your logic here (e.g., send an API request to escalate the event)
     // setDetailModalVisible(false); // Close the modal
     // setDetail(''); // Clear the details
@@ -444,14 +548,14 @@ const DashboardContent = () => {
   };
 
   const handleDismiss = (eventId: number) => {
-    console.log(`Descartar button clicked for event ID: ${eventId}`)
+    // console.log(`Descartar button clicked for event ID: ${eventId}`)
     // Add your logic here (e.g., remove the event from the list)
     setSelectedEventId(eventId); // Store the event ID
     setDiscardModalVisible(true); // Show the modal
   }
 
   const handleConfirmDiscard = async () => {
-    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
     // Add your logic here (e.g., send an API request to escalate the event)
     setDiscardModalVisible(false); // Close the modal
 
@@ -464,8 +568,8 @@ const DashboardContent = () => {
     // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
 
 
-    const updatedEvent = await updateEvent({id: selectedEventId!, status: 'discarded'}).then((response) => {
-      console.log('Event discarded:', updatedEvent);
+    const updatedEvent = await updateEvent({id: selectedEventId!, status: 'discarded'}).then(() => {
+      // console.log('Event discarded:', updatedEvent);
       // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
 
       filterEvents(events);
@@ -474,7 +578,7 @@ const DashboardContent = () => {
     });
 
     // Optionally, you can also show a success message or perform any other action
-    console.log(`Event with ID ${selectedEventId} discarded.`);
+    // console.log(`Event with ID ${selectedEventId} discarded.`);
     // Reset selectedEventId
     setSelectedEventId(null);
   };
@@ -484,13 +588,13 @@ const DashboardContent = () => {
   };
 
   const handleEscalate = (eventId: number) => {
-    console.log(`Escalar button clicked for event ID: ${eventId}`);
+    // console.log(`Escalar button clicked for event ID: ${eventId}`);
     setSelectedEventId(eventId); // Store the event ID
     setEscalateModalVisible(true); // Show the modal
   };
 
   const handleConfirmEscalate = async () => {
-    console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
+    // console.log(`Confirmed escalation for event ID: ${selectedEventId}`);
     // Add your logic here (e.g., send an API request to escalate the event)
     setEscalateModalVisible(false); // Close the modal
 
@@ -503,8 +607,8 @@ const DashboardContent = () => {
     // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
 
 
-    const updatedEvent = await updateEvent({id: selectedEventId!, status: 'escalated'}).then((response) => {
-      console.log('Event escalated:', updatedEvent);
+    const updatedEvent = await updateEvent({id: selectedEventId!, status: 'escalated'}).then(() => {
+      // console.log('Event escalated:', updatedEvent);
       // setEvents((prevEvents) => prevEvents.filter((event) => event.id !== selectedEventId));
 
       filterEvents(events);
@@ -515,7 +619,7 @@ const DashboardContent = () => {
 
 
     // Optionally, you can also show a success message or perform any other action
-    console.log(`Event with ID ${selectedEventId} discarded.`);
+    // console.log(`Event with ID ${selectedEventId} discarded.`);
     // Reset selectedEventId
     setSelectedEventId(null);
 
@@ -526,7 +630,7 @@ const DashboardContent = () => {
   };
 
 
-  const progressExample = [
+/*   const progressExample = [
     { title: 'Visits', value: '29.703 Users', percent: 40, color: 'success' },
     { title: 'Unique', value: '24.093 Users', percent: 20, color: 'info' },
     { title: 'Pageviews', value: '78.706 Views', percent: 60, color: 'warning' },
@@ -554,7 +658,7 @@ const DashboardContent = () => {
     { title: 'Facebook', icon: cibFacebook, percent: 15, value: '51,223' },
     { title: 'Twitter', icon: cibTwitter, percent: 11, value: '37,564' },
     { title: 'LinkedIn', icon: cibLinkedin, percent: 8, value: '27,319' },
-  ]
+  ] */
   /*
   const tableExample = [
     {
@@ -826,13 +930,14 @@ Similar code found with 1 license type
                   <CFormSelect
                     id="eventLimit"
                     aria-label="Default select example"
-                    style={{ width: '200px' }}
+                    style={{ width: '70px' }}
                     value={selectedEventsPerPage} // Bind the state to the select element
                     onChange={handleEventsPerPageSelectChange} // Attach the change handler
                   >
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="5">5</option>
+                    <option value="10">10</option>
                   </CFormSelect>
                 </div>
               </div>
@@ -930,7 +1035,7 @@ Similar code found with 1 license type
                 <CPaginationItem
                   aria-label="Previous"
                   disabled={currentPage === 1} // Disable if on the first page
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} // Decrement page
+                    onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))} // Decrement page
                 >
                   &laquo;
                 </CPaginationItem>
@@ -950,7 +1055,7 @@ Similar code found with 1 license type
                 <CPaginationItem
                   aria-label="Next"
                   disabled={currentPage === totalPages} // Disable if on the last page
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} // Increment page
+                  onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))} // Increment page
                 >
                   &raquo;
                 </CPaginationItem>
@@ -1002,29 +1107,31 @@ Similar code found with 1 license type
                         <div>{event.description}</div>
                       </CTableDataCell>
                       <CTableDataCell>
+                        
                         <CButtonGroup role="group" aria-label="Basic example">
                           <CButton
                             color="primary"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => handleDetail(event.id!)}
                           >
-                            Detalle
+                            <CIcon icon={cilMagnifyingGlass} className="me-2" />
                           </CButton>
                           <CButton
                             color="primary"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => handleEscalate(event.id!)}
                           >
-                            Escalar
+                            <CIcon icon={cilWarning} className="me-2" />
                           </CButton>
                           <CButton
                             color="primary"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => handleDismiss(event.id!)}
                           >
-                            Descartar
+                            <CIcon icon={cilTrash} className="me-2" />
                           </CButton>
                         </CButtonGroup>
+                        
                       </CTableDataCell>
                       {/* <CTableDataCell className="text-center">
                         <CIcon size="xl" icon={item.country.flag} title={item.country.name} />
